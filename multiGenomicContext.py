@@ -91,7 +91,6 @@ def foundGenomicContext(gene,faafile,upstream,downstream,GCX): #function to sear
 	#the faa files are with genes in order and formatted >gene|contig|position
 	gene_list = [] #to save up and downstream genes
 	faa_sequences = SeqIO.parse(open(faafile),'fasta')
-	print "save",faafile,"genes"
 	for proteins in faa_sequences:
 		name = str(proteins.id)
 		gene_list.append(name)
@@ -118,7 +117,7 @@ def foundGenomicContext(gene,faafile,upstream,downstream,GCX): #function to sear
 	outname=str(faafile).replace(".faa","")
 	dna_segs=open(str(outname+".DNASEGcsv"),"w")
 	annot=open(str(outname+".ANNOTcsv"),"w")
-	print "writing",outname,dna_segs,annot,"files"
+
 	while gene_position<len(gene_list) and downstream>=0:
 
 		#only prints genes in the same contig of our gene
@@ -147,8 +146,8 @@ def foundGenomicContext(gene,faafile,upstream,downstream,GCX): #function to sear
 			dna_segs.write("%s,%s,%s,%s,%s,1,1,8,1,arrows\n" % (str(name[0:25]+"..."), pos1, pos2, strand, color))
 			annot.write("%s,,%s,%s,35\n" % (str((int(pos2)-int(pos1))/6 + int(pos1)), str(name[0:25]+"..."), color))
 
-			gene_position=gene_position+1
-			downstream=downstream-1
+		gene_position=gene_position+1
+		downstream=downstream-1
 
 	dna_segs.close()
 	annot.close()
@@ -274,7 +273,6 @@ def main():
 		GCX=open(str(name+".csv"),'w')
 		GCX.write("source,genId,contig,name,start,end,strand\n")
 		for faa in faafiles:
-			print "Doing blastp on",faa
 			subprocess.call([blastpBIN, "-query", "tmp.faa", "-subject", str(faa), "-out", "tmp.out", "-evalue", Evalue, "-outfmt", "10", "-max_target_seqs", "1", "-max_hsps", "1"])
 			#now we check if the results pass the filter to consider the gene "exists" in the genome
 			if os.path.getsize("tmp.out")>0:
