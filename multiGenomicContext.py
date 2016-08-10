@@ -11,7 +11,7 @@ from __future__ import with_statement
 
 __author__ = 'Sandro Valenzuela (sandrolvalenzuead@gmail.com)'
 __version__ = '1.0'
-__date__ = '11 August 2016'
+__date__ = '10 August 2016'
 
 import sys, os, re, subprocess, csv, glob
 from operator import itemgetter
