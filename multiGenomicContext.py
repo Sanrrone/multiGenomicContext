@@ -127,7 +127,9 @@ def foundGenomicContext(gene,faafile,upstream,downstream,GCX): #function to sear
 			name=str(gene_list[gene_position]).split("|")[1]
 			contig=str(gene_list[gene_position]).split("|")[2]
 			pos1=str(gene_list[gene_position]).split("|")[3].split(":")[0]
+			pos1=str(pos1).replace(">","").replace("<","")
 			pos2=str(gene_list[gene_position]).split("|")[3].split(":")[1]
+			pos2=str(pos2).replace(">","").replace("<","")
 			strand=str(gene_list[gene_position]).split("|")[3]
 			strand=str(strand).split(":")[2].replace("+","1").replace("-","-1")
 
