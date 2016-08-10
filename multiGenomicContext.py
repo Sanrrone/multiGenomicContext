@@ -252,6 +252,7 @@ def main():
 
 #################################################################################
 	#get proteins from gbks
+	print "Making .faa from gbk files"
 	faafiles = [] #create list to save .faa
 	for gbk in gbks:
 		gbk=gbk.rstrip()#delete \n character
@@ -263,6 +264,7 @@ def main():
 
 	#walk through the fastas
 	for fasta in fasta_sequences:
+		print "Find",fasta,"in faa files"
 		name, sequence = str(fasta.id), str(fasta.seq)
 		#making an individual fasta with the protein
 		tmp=open('tmp.faa','w')
@@ -272,8 +274,8 @@ def main():
 		GCX=open(str(name+".csv"),'w')
 		GCX.write("source,genId,contig,name,start,end,strand\n")
 		for faa in faafiles:
+			print "Doing blastp on",faa
 			subprocess.call([blastpBIN, "-query", "tmp.faa", "-subject", str(faa), "-out", "tmp.out", "-evalue", Evalue, "-outfmt", "10", "-max_target_seqs", "1", "-max_hsps", "1"])
-			
 			#now we check if the results pass the filter to consider the gene "exists" in the genome
 			if os.path.getsize("tmp.out")>0:
 				tmp=open("tmp.out","r")
@@ -286,7 +288,7 @@ def main():
 				if uniquerow[2]>=Identity and (float(uniquerow[3])/len(sequence))>=(alignL/100.0):
 					#if we are here, so, the protein exist in the gbk, the next step is find the genes up and down stream of the gbk
 					#call the function
-
+					print "Searching genomic context"
 					foundGenomicContext(uniquerow[1],faa,Upstream,Downstream,GCX)
 
 			else:
@@ -297,14 +299,13 @@ def main():
 		os.remove("tmp.faa")
 		GCX.close()
 		#call plot step
-		#sys.exit()
 		printPlotStep(str(name+".pdf"))
 
-
+	print "Clean files"
 	for faa in faafiles:
 		os.remove(faa)
 
-
+	print "Done"
 
 
 
