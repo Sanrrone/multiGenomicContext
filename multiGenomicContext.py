@@ -91,7 +91,7 @@ def foundGenomicContext(gene,faafile,upstream,downstream,GCX): #function to sear
 	#the faa files are with genes in order and formatted >gene|contig|position
 	gene_list = [] #to save up and downstream genes
 	faa_sequences = SeqIO.parse(open(faafile),'fasta')
-
+	print "save",faafile,"genes"
 	for proteins in faa_sequences:
 		name = str(proteins.id)
 		gene_list.append(name)
@@ -118,7 +118,7 @@ def foundGenomicContext(gene,faafile,upstream,downstream,GCX): #function to sear
 	outname=str(faafile).replace(".faa","")
 	dna_segs=open(str(outname+".DNASEGcsv"),"w")
 	annot=open(str(outname+".ANNOTcsv"),"w")
-
+	print "writing",outname,dna_segs,annot,"files"
 	while gene_position<len(gene_list) and downstream>=0:
 
 		#only prints genes in the same contig of our gene
@@ -264,8 +264,8 @@ def main():
 
 	#walk through the fastas
 	for fasta in fasta_sequences:
-		print "Find",fasta,"in faa files"
 		name, sequence = str(fasta.id), str(fasta.seq)
+		print "Find",name,"in faa files"
 		#making an individual fasta with the protein
 		tmp=open('tmp.faa','w')
 		tmp.write(">%s\n%s\n" % (name,sequence))
