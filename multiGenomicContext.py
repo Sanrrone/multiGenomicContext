@@ -22,7 +22,7 @@ from optparse import OptionParser
 #from Bio.SeqFeature import SeqFeature, FeatureLocation
 from Bio import SeqIO
 
-def printPlotStep(outfilename):
+def printPlotStep(outfilename,totalgenes,totalgenomes):
 	print outfilename
 	plotstep=open("plotstep.R", 'w')
 	plotstep.write("""
@@ -31,6 +31,9 @@ library(ggplot2)
 library(genoPlotR)
 args<-commandArgs()
 outfilename<-args[6]
+totalgenes<-as.numeric(args[7])
+totalgenomes<-as.numeric(args[8])
+
 temp = list.files(pattern="*.DNASEGcsv")
 if (length(temp)>1) {
   gbknames<- lapply(as.list(temp),function(x){strsplit(x = gsub(pattern = "[.]",replacement = " ",x = x),split = c(" "))[[1]][1]})
@@ -39,45 +42,41 @@ if (length(temp)>1) {
   df<-lapply(df,function(x){colnames(x)<-c("name", "start",  "end" ,"strand"  ,"col" ,"lty" ,"lwd" ,"pch" ,"cex", "gene_type");x})
   df<-lapply(df,function(x){dna_seg(x)})
   names(df)<-gbknames
+  
 }else{
   df<-read.csv(temp,header = F)
   colnames(df)<-c("name", "start",  "end" ,"strand"  ,"col" ,"lty" ,"lwd" ,"pch" ,"cex", "gene_type")
   df<-list(dna_seg(df))
 }
 
-temp = list.files(pattern="*.ANNOTcsv")
-if (length(temp)>1) {
-  dfa<-lapply(temp, read.csv, header = FALSE)
-  dfa<-lapply(dfa,function(x){colnames(x)<-c("x1" ,  "x2"  ,  "text" ,"color" ,"rot");x})
-  dfa<-lapply(dfa,function(x){annotation(x1=c(as.matrix(x$x1)), x2=NA, text =c(as.matrix(x$text)),
-                                         col = c(as.matrix(x$color)), 
-                                         rot = 40)})
-}else{
-  dfa<-read.csv(temp,header = F)
-  colnames(dfa)<-c("x1" ,  "x2"  ,  "text" ,"color" ,"rot")
-  dfa<-annotation(x1=c(as.matrix(dfa$x1)), x2=NA, text =c(as.matrix(dfa$text)),
-             col = c(as.matrix(dfa$color)), 
-             rot = 40)
-}
-if(length(temp)>5){
-	pdf(file=outfilename, width = (length(temp)*2)-1, height =(length(temp)*2)+2)
-	plot_gene_map(dna_segs = df, annotations = dfa,annotation_height = length(temp)-1,dna_seg_label_cex = 0.9)
+uniqnames<-unique(do.call(rbind.data.frame, df)["name"])
+uniqnames<-sort(uniqnames[,1])
+color = grDevices::colors()[grep('gr(a|e)y', grDevices::colors(), invert = T)]
+colors<-sample(color, length(uniqnames))
+df2color<-data.frame(as.matrix(uniqnames),as.matrix(colors))
+df2color<-t(df2color)
+colnames(df2color)<-df2color[1,]
+df2color<- df2color[-1,]
+df<-lapply(df,function(x){x["col"]<-df2color[x$name];x})
 
-}else{
-	pdf(file=outfilename, width = (length(temp)*4)+4, height =(length(temp)*2)+3)
-	plot_gene_map(dna_segs = df, annotations = dfa,annotation_height = 10,dna_seg_label_cex = 0.9)
+uniqnames<-gsub(pattern = "_",x = as.matrix(uniqnames),replacement = " ")
+uniqnames<-gsub(pattern = "[.]",x = as.matrix(uniqnames),replacement = ",")
 
-}
+pdf(file=outfilename, width = totalgenes, height = totalgenomes)
 
+par(mar=c(2,2,2,0))
+plot(c(0,1000), c(0,1000), type="n", axes=FALSE, xlab="", ylab="")
+
+legend("center", legend = c(as.matrix(uniqnames)),ncol = 1,xpd = NA, cex = 0.8,
+       bty="n",fill=c(as.matrix(colors)),border = c("white"),title = "Genes")
+
+plot_gene_map(dna_segs = df,dna_seg_label_cex = 0.9)
 
 dev.off()""")
 
 	plotstep.close()
 
-	subprocess.call(["Rscript", "plotstep.R", str(outfilename)])
-	filenames = glob.glob('*.ANNOTcsv')
-	for filename in filenames:
- 		os.remove(filename)
+	subprocess.call(["Rscript", "plotstep.R", str(outfilename), str(totalgenes), str(totalgenomes)])
 	
 	filenames = glob.glob('*.DNASEGcsv')
 	for filename in filenames:
@@ -116,7 +115,6 @@ def foundGenomicContext(gene,faafile,upstream,downstream,GCX): #function to sear
 
 	outname=str(faafile).replace(".faa","")
 	dna_segs=open(str(outname+".DNASEGcsv"),"w")
-	annot=open(str(outname+".ANNOTcsv"),"w")
 
 	while gene_position<len(gene_list) and downstream>=0:
 
@@ -143,14 +141,12 @@ def foundGenomicContext(gene,faafile,upstream,downstream,GCX): #function to sear
 
 			#print name,pos1,pos2,strand,color
 
-			dna_segs.write("%s,%s,%s,%s,%s,1,1,8,1,arrows\n" % (str(name[0:25]+"..."), pos1, pos2, strand, color))
-			annot.write("%s,,%s,%s,35\n" % (str((int(pos2)-int(pos1))/6 + int(pos1)), str(name[0:25]+"..."), color))
+			dna_segs.write("%s,%s,%s,%s,%s,1,1,8,1,arrows\n" % (name, pos1, pos2, strand, color))
 
 		gene_position=gene_position+1
 		downstream=downstream-1
 
 	dna_segs.close()
-	annot.close()
 
 	return None
 
@@ -286,7 +282,6 @@ def main():
 				if uniquerow[2]>=Identity and (float(uniquerow[3])/len(sequence))>=(alignL/100.0):
 					#if we are here, so, the protein exist in the gbk, the next step is find the genes up and down stream of the gbk
 					#call the function
-					print "Searching genomic context"
 					foundGenomicContext(uniquerow[1],faa,Upstream,Downstream,GCX)
 
 			else:
@@ -297,7 +292,8 @@ def main():
 		os.remove("tmp.faa")
 		GCX.close()
 		#call plot step
-		printPlotStep(str(name+".pdf"))
+		#sys.exit()
+		printPlotStep(str(name+".pdf"), Upstream+Downstream+1, len(faafiles))
 
 	print "Clean files"
 	for faa in faafiles:
