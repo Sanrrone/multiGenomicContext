@@ -35,4 +35,6 @@ The simple way is write a txt name by name. Or do in a terminal:
 	ls -1 *.gbk > myGbkList.txt
 
 # Notes
-multiGenomicContext search genes on the gbk because the cds are ordered, but this true only for one chromosome assembly, for gbk files where two or more contigs exists, it's show genomic context for the same contig of the gene
+* multiGenomicContext search genes on the gbk because the cds are ordered, but this true only for one chromosome assembly, for gbk files where two or more contigs exists, it's show genomic context for the same contig of the gene.
+* We strongly recommend use one software to annotate all gbk's.
+* finally, no genomic context is printed if the gene is missing in the gbk.
