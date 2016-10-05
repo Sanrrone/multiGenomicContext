@@ -5,7 +5,6 @@ multiGenomicContext is a python + R script that plot the genomic context of a pr
 ![](https://github.com/Sanrrone/multiGenomicContext/raw/master/example/output_example.pdf)
 
 
-
 #Requisites
 * Python >= 2.7 with the module [Biopython](http://biopython.org/wiki/Download)
 * [blastp binary](ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/)

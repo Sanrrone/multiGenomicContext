@@ -61,8 +61,11 @@ df<-lapply(df,function(x){x["col"]<-df2color[x$name];x})
 
 uniqnames<-gsub(pattern = "_",x = as.matrix(uniqnames),replacement = " ")
 uniqnames<-gsub(pattern = "[.]",x = as.matrix(uniqnames),replacement = ",")
-
-pdf(file=outfilename, width = totalgenes, height = totalgenomes)
+if(totalgenes>totalgenomes){
+	pdf(file=outfilename, width = totalgenes, height = totalgenes)
+}else{
+	pdf(file=outfilename, width = totalgenes, height = totalgenomes)
+}
 
 par(mar=c(2,2,2,0))
 plot(c(0,1000), c(0,1000), type="n", axes=FALSE, xlab="", ylab="")
