@@ -61,11 +61,8 @@ df<-lapply(df,function(x){x["col"]<-df2color[x$name];x})
 
 uniqnames<-gsub(pattern = "_",x = as.matrix(uniqnames),replacement = " ")
 uniqnames<-gsub(pattern = "[.]",x = as.matrix(uniqnames),replacement = ",")
-if(totalgenes>totalgenomes){
-	pdf(file=outfilename, width = totalgenes, height = totalgenes)
-}else{
-	pdf(file=outfilename, width = totalgenes, height = totalgenomes)
-}
+
+	pdf(file=outfilename, width = totalgenes, height = totalgenes*0.25*totalgenomes)
 
 par(mar=c(2,2,2,0))
 plot(c(0,1000), c(0,1000), type="n", axes=FALSE, xlab="", ylab="")
@@ -143,8 +140,10 @@ def foundGenomicContext(gene,faafile,upstream,downstream,GCX): #function to sear
 
 
 			#print name,pos1,pos2,strand,color
-
-			dna_segs.write("%s,%s,%s,%s,%s,1,1,8,1,arrows\n" % (name, pos1, pos2, strand, color))
+			if gene_position == ourgene_position:
+				dna_segs.write("%s,%s,%s,%s,%s,1,1,8,1,arrows\n" % (str(name+"(query)"), pos1, pos2, strand, color))
+			else:
+				dna_segs.write("%s,%s,%s,%s,%s,1,1,8,1,arrows\n" % (name, pos1, pos2, strand, color))
 
 		gene_position=gene_position+1
 		downstream=downstream-1
