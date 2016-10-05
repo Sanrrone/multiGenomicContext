@@ -141,7 +141,7 @@ def foundGenomicContext(gene,faafile,upstream,downstream,GCX): #function to sear
 
 			#print name,pos1,pos2,strand,color
 			if gene_position == ourgene_position:
-				dna_segs.write("%s,%s,%s,%s,%s,1,1,8,1,arrows\n" % (str(name+"(query)"), pos1, pos2, strand, color))
+				dna_segs.write("%s,%s,%s,%s,%s,1,1,8,1,arrows\n" % (str(name+" (query)"), pos1, pos2, strand, color))
 			else:
 				dna_segs.write("%s,%s,%s,%s,%s,1,1,8,1,arrows\n" % (name, pos1, pos2, strand, color))
 
