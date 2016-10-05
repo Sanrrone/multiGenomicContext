@@ -132,7 +132,7 @@ def foundGenomicContext(gene,faafile,upstream,downstream,GCX): #function to sear
 
 			if gene_position == ourgene_position:
 				color="red"
-				GCX.write("%s,%s,%s,%s,%s,%s,%s\n" % (faafile,str(genid+"_match"),contig,name,pos1,pos2,strand))
+				GCX.write("%s,%s,%s,%s,%s,%s,%s\n" % (faafile,str(genid+" (query)"),contig,name,pos1,pos2,strand))
 
 			else:
 				color="gray"
