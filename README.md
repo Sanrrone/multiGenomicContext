@@ -1,6 +1,9 @@
 # multiGenomicContext
 multiGenomicContext is a python + R script that plot the genomic context of a protein on the genome that you want (or many genomes).
 
+# Output
+![Output Example](https://github.com/Sanrrone/multiGenomicContext/blob/master/example/output_example.pdf)
+
 
 #Requisites
 * Python >= 2.7 with the module [Biopython](http://biopython.org/wiki/Download)
