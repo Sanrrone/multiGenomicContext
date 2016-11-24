@@ -316,7 +316,7 @@ def main():
 		os.remove("tmp.faa")
 		GCX.close()
 		#call plot step
-		sys.exit()
+		#sys.exit()
 		printPlotStep(str(name+".pdf"), Upstream+Downstream+1, len(faafiles))
 
 	print "Clean files"
