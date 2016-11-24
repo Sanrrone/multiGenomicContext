@@ -10,8 +10,6 @@ from __future__ import with_statement
 # ==============================================================================
 
 __author__ = 'Sandro Valenzuela (sandrolvalenzuead@gmail.com)'
-__version__ = '1.0'
-__date__ = '10 August 2016'
 
 import sys, os, re, subprocess, csv, glob
 from operator import itemgetter
@@ -49,6 +47,26 @@ if (length(temp)>1) {
   df<-list(dna_seg(df))
 }
 
+if (length(temp)>1) {
+
+  annot<-lapply(df,function(x){annot<-annotation(x1=x$start+10,
+                                          x2=x$end-20,
+                                          text=x$name,
+                                          rot=replicate(nrow(x),35));
+  annot$text<-paste(substr(x$name,start = 0,stop = 15),"...")
+  annot})
+  
+  
+}else{
+
+  annot <- annotation(x1=df[[1]]$start+10,
+                      x2=df[[1]]$end-20,
+                      text=df[[1]]$name,
+                      rot=replicate(nrow(df[[1]]),35))
+  
+  annot$text<-paste(substr(df[[1]]$name,start = 0,stop = 15),"...")
+}
+
 uniqnames<-unique(do.call(rbind.data.frame, df)["name"])
 uniqnames<-sort(uniqnames[,1])
 color = grDevices::colors()[grep('gr(a|e)y', grDevices::colors(), invert = T)]
@@ -62,7 +80,9 @@ df<-lapply(df,function(x){x["col"]<-df2color[x$name];x})
 uniqnames<-gsub(pattern = "_",x = as.matrix(uniqnames),replacement = " ")
 uniqnames<-gsub(pattern = "[.]",x = as.matrix(uniqnames),replacement = ",")
 
-	pdf(file=outfilename, width = totalgenes, height = totalgenes*0.25*totalgenomes)
+
+
+pdf(file=outfilename, width = totalgenes, height = totalgenes*0.25*totalgenomes)
 
 par(mar=c(2,2,2,0))
 plot(c(0,1000), c(0,1000), type="n", axes=FALSE, xlab="", ylab="")
@@ -70,9 +90,11 @@ plot(c(0,1000), c(0,1000), type="n", axes=FALSE, xlab="", ylab="")
 legend("center", legend = c(as.matrix(uniqnames)),ncol = 1,xpd = NA, cex = 0.8,
        bty="n",fill=c(as.matrix(colors)),border = c("white"),title = "Genes")
 
-plot_gene_map(dna_segs = df,dna_seg_label_cex = 0.9)
+plot_gene_map(dna_segs = df,dna_seg_label_cex = 0.8,
+              annotations = annot, annotation_height = 11)
 
-dev.off()""")
+dev.off()
+""")
 
 	plotstep.close()
 
@@ -294,7 +316,7 @@ def main():
 		os.remove("tmp.faa")
 		GCX.close()
 		#call plot step
-		#sys.exit()
+		sys.exit()
 		printPlotStep(str(name+".pdf"), Upstream+Downstream+1, len(faafiles))
 
 	print "Clean files"
