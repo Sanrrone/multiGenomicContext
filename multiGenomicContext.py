@@ -50,17 +50,17 @@ if (length(temp)>1) {
 if (length(temp)>1) {
 
   annot<-lapply(df,function(x){annot<-annotation(x1=x$start+10,
-                                          x2=x$end-20,
+                                          x2=x$end-10,
                                           text=x$name,
                                           rot=replicate(nrow(x),35));
-  annot$text<-paste(substr(x$name,start = 0,stop = 15),"...")
+  annot$text<-paste(substr(x$name,start = 0,stop = 14),"...")
   annot})
   
   
 }else{
 
   annot <- annotation(x1=df[[1]]$start+10,
-                      x2=df[[1]]$end-20,
+                      x2=df[[1]]$end-10,
                       text=df[[1]]$name,
                       rot=replicate(nrow(df[[1]]),35))
   
@@ -82,7 +82,7 @@ uniqnames<-gsub(pattern = "[.]",x = as.matrix(uniqnames),replacement = ",")
 
 
 
-pdf(file=outfilename, width = totalgenes, height = totalgenes*0.25*totalgenomes)
+pdf(file=outfilename, width = totalgenes*1.5, height = totalgenes*0.3*totalgenomes)
 
 par(mar=c(2,2,2,0))
 plot(c(0,1000), c(0,1000), type="n", axes=FALSE, xlab="", ylab="")
@@ -91,7 +91,7 @@ legend("center", legend = c(as.matrix(uniqnames)),ncol = 1,xpd = NA, cex = 0.8,
        bty="n",fill=c(as.matrix(colors)),border = c("white"),title = "Genes")
 
 plot_gene_map(dna_segs = df,dna_seg_label_cex = 0.8,
-              annotations = annot, annotation_height = 11)
+              annotations = annot, annotation_height = 12)
 
 dev.off()
 """)
