@@ -97,8 +97,12 @@ dev.off()
 """)
 
 	plotstep.close()
-
-	subprocess.call(["Rscript", "plotstep.R", str(outfilename), str(totalgenes), str(totalgenomes)])
+	RBIN==which("Rscript")
+	if RBIN == None:
+		print "No Rscript binary found, install it before continue"
+		sys.exit()
+	else	
+		subprocess.call([RBIN, "plotstep.R", str(outfilename), str(totalgenes), str(totalgenomes)])
 	
 	filenames = glob.glob('*.DNASEGcsv')
 	for filename in filenames:
