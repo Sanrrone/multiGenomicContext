@@ -10,7 +10,7 @@ multiGenomicContext is a python + R script that plot the genomic context of a pr
 * [blastp binary](ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/)
 * R (tested in 3.3.1), with modules:
 	* ggplot2  
-	* genoPlotR
+	* genoPlotR: install.packages("genoPlotR", repos="http://R-Forge.R-project.org")
 
 # Usage
 

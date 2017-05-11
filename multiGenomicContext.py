@@ -101,7 +101,7 @@ dev.off()
 	if RBIN == None:
 		print "No Rscript binary found, install it before continue"
 		sys.exit()
-	else	
+	else:	
 		subprocess.call([RBIN, "plotstep.R", str(outfilename), str(totalgenes), str(totalgenomes)])
 	
 	filenames = glob.glob('*.DNASEGcsv')
