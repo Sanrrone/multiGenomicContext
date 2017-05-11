@@ -31,6 +31,7 @@ args<-commandArgs()
 outfilename<-args[6]
 totalgenes<-as.numeric(args[7])
 totalgenomes<-as.numeric(args[8])
+labelS<-as.numeric(args[9])
 
 temp = list.files(pattern="*.DNASEGcsv")
 if (length(temp)>1) {
@@ -53,7 +54,7 @@ if (length(temp)>1) {
                                           x2=x$end-10,
                                           text=x$name,
                                           rot=replicate(nrow(x),35));
-  annot$text<-paste(substr(x$name,start = 0,stop = 14),"...")
+  annot$text<-paste(substr(x$name,start = 0,stop = labelS),"...")
   annot})
   
   
@@ -64,7 +65,7 @@ if (length(temp)>1) {
                       text=df[[1]]$name,
                       rot=replicate(nrow(df[[1]]),35))
   
-  annot$text<-paste(substr(df[[1]]$name,start = 0,stop = 15),"...")
+  annot$text<-paste(substr(df[[1]]$name,start = 0,stop = 15),".")
 }
 
 uniqnames<-unique(do.call(rbind.data.frame, df)["name"])
@@ -82,7 +83,7 @@ uniqnames<-gsub(pattern = "[.]",x = as.matrix(uniqnames),replacement = ",")
 
 
 
-pdf(file=outfilename, width = totalgenes*1.5, height = totalgenes*0.3*totalgenomes)
+pdf(file=outfilename, width = totalgenes*1.5, height = totalgenes*0.2*(totalgenomes*0.8)+1)
 
 par(mar=c(2,2,2,0))
 plot(c(0,1000), c(0,1000), type="n", axes=FALSE, xlab="", ylab="")
@@ -243,6 +244,7 @@ def main():
 	parser.add_option("-e","--evalue",dest="evalue",help="default:1e-5 e-value for blastp search",default=1e-5)
 	parser.add_option("-i","--identity",dest="Identity",help="default:85 range 1-100 % of identity on the blastp alignment to consider the gene exists on the genome",default=85)
 	parser.add_option("-a","--alignmentLength",dest="alignL",help="default:75 range 1-100 % of aligment length to consider the gene exists on the genome",default=75)
+	parser.add_option("-s","--labelSize", dest="labelS",help="default:15 number of character of labels genes", default=15)
 
 	(options,args) = parser.parse_args()
 
@@ -253,6 +255,7 @@ def main():
 	Evalue=str(options.evalue)
 	Identity=int(options.Identity)
 	alignL=int(options.alignL)
+	labelS=int(options.labelS)
 
 
 	#check variables
@@ -321,7 +324,7 @@ def main():
 		GCX.close()
 		#call plot step
 		#sys.exit()
-		printPlotStep(str(name+".pdf"), Upstream+Downstream+1, len(faafiles))
+		printPlotStep(str(name+".pdf"), Upstream+Downstream+1, len(faafiles), labelS)
 
 	print "Clean files"
 	for faa in faafiles:

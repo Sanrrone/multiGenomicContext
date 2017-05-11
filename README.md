@@ -20,7 +20,7 @@ multiGenomicContext have a minimal use:
 	
 and a complete use:
 
-	python multiGenomicContext.py -f protein.fasta -l gbklist.txt -u 4 -d 4 -e 1e-5 -i 85 -a 75
+	python multiGenomicContext.py -f protein.fasta -l gbklist.txt -u 4 -d 4 -e 1e-5 -i 85 -a 75 -s 15
 	
 where the options are:
 
@@ -31,6 +31,7 @@ where the options are:
 * -e E-value for blastp search (default: 1e-5)
 * -i Identity % of the alignment on blastp results to consider the gene exists on the genome (default: 85)
 * -a Alignment length (%) between gene and the match for blastp search to consider the gene "exists" on the genome (default 75)
+* -s Number of character of labels genes
 
 # How can I do a list?
 The simple way is write a txt name by name. Or do in a terminal:
