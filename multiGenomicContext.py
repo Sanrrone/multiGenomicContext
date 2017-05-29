@@ -20,7 +20,7 @@ from optparse import OptionParser
 #from Bio.SeqFeature import SeqFeature, FeatureLocation
 from Bio import SeqIO
 
-def printPlotStep(outfilename,totalgenes,totalgenomes):
+def printPlotStep(outfilename,totalgenes,totalgenomes,labelSize):
 	print outfilename
 	plotstep=open("plotstep.R", 'w')
 	plotstep.write("""
