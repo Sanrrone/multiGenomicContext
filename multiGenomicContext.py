@@ -65,7 +65,7 @@ if (length(temp)>1) {
                       text=df[[1]]$name,
                       rot=replicate(nrow(df[[1]]),35))
   
-  annot$text<-paste(substr(df[[1]]$name,start = 0,stop = 15),".")
+  annot$text<-paste(substr(df[[1]]$name,start = 0,stop = labelS),".")
 }
 
 uniqnames<-unique(do.call(rbind.data.frame, df)["name"])
