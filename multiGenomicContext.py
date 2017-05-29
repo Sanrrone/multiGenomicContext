@@ -98,7 +98,7 @@ dev.off()
 """)
 
 	plotstep.close()
-	RBIN==which("Rscript")
+	RBIN=which("Rscript")
 	if RBIN == None:
 		print "No Rscript binary found, install it before continue"
 		sys.exit()
