@@ -65,7 +65,7 @@ if (length(temp)>1) {
                       text=df[[1]]$name,
                       rot=replicate(nrow(df[[1]]),35))
   
-  annot$text<-paste(substr(df[[1]]$name,start = 0,stop = labelS),".")
+  annot$text<-paste(substr(df[[1]]$name,start = 0,stop = labelS),"...")
 }
 
 uniqnames<-unique(do.call(rbind.data.frame, df)["name"])
@@ -103,7 +103,7 @@ dev.off()
 		print "No Rscript binary found, install it before continue"
 		sys.exit()
 	else:	
-		subprocess.call([RBIN, "plotstep.R", str(outfilename), str(totalgenes), str(totalgenomes)])
+		subprocess.call([RBIN, "plotstep.R", str(outfilename), str(totalgenes), str(totalgenomes), str(labelSize)])
 	
 	filenames = glob.glob('*.DNASEGcsv')
 	for filename in filenames:
