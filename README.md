@@ -11,7 +11,7 @@ multiGenomicContext is a python + R script that plot the genomic context of a pr
 * Python >= 2.7 with the module [Biopython](http://biopython.org/wiki/Download)
 * [blastp binary](ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/)
 * R (tested in 3.3.1), with modules:
-	* ggplot2  
+	* ggplot2: install.packages("ggplot2")
 	* genoPlotR: install.packages("genoPlotR", repos="http://R-Forge.R-project.org")
 
 # Usage
@@ -43,4 +43,3 @@ The simple way is write a txt name by name. Or do in a terminal:
 # Notes
 * multiGenomicContext search genes on the gbk because the cds are ordered, but this true only for one chromosome assembly, for gbk files where two or more contigs exists, it's show genomic context for the same contig of the gene.
 * We strongly recommend use one software to annotate all gbk's.
-* finally, no genomic context is printed if the gene is missing in the gbk.
