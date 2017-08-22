@@ -43,7 +43,7 @@ The simple way is write a txt name by name. Or do in a terminal:
 * multiGenomicContext search genes on the gbk because the cds are ordered, but this true only for one chromosome assembly, for gbk files where two or more contigs exists, it's show genomic context for the same contig of the gene.
 * We strongly recommend use one software to annotate all gbk's to conserve the same names outcome.
 
-## External useful tools
+# External useful tools
 check for these tools to extract some useful information from your data:
 
 * [multiGenomicContext](https://github.com/Sanrrone/multiGenomicContext): Check the genomic context of several genomes or sequence just providing the GBK files.
