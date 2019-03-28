@@ -1,3 +1,4 @@
+#!/usr/bin/python
 from __future__ import with_statement 
 
 # ==============================================================================
@@ -20,7 +21,7 @@ from optparse import OptionParser
 #from Bio.SeqFeature import SeqFeature, FeatureLocation
 from Bio import SeqIO
 
-def printPlotStep(outfilename,totalgenes,totalgenomes,labelSize):
+def printPlotStep(outfilename,globalA,cleanProcess):
 	print outfilename
 	plotstep=open("plotstep.R", 'w')
 	plotstep.write("""
@@ -29,45 +30,29 @@ library(ggplot2)
 library(genoPlotR)
 args<-commandArgs()
 outfilename<-args[6]
-totalgenes<-as.numeric(args[7])
-totalgenomes<-as.numeric(args[8])
-labelS<-as.numeric(args[9])
+globalA<-ifelse(toupper(args[7])=="TRUE",TRUE,FALSE)
 
 temp = list.files(pattern="*.DNASEGcsv")
-if (length(temp)>1) {
-  gbknames<- lapply(as.list(temp),function(x){strsplit(x = gsub(pattern = "[.]",replacement = " ",x = x),split = c(" "))[[1]][1]})
-  
-  df<-lapply(temp, read.csv, header = FALSE)
-  df<-lapply(df,function(x){colnames(x)<-c("name", "start",  "end" ,"strand"  ,"col" ,"lty" ,"lwd" ,"pch" ,"cex", "gene_type");x})
-  df<-lapply(df,function(x){dna_seg(x)})
-  names(df)<-gbknames
-  
-}else{
-  df<-read.csv(temp,header = F)
-  colnames(df)<-c("name", "start",  "end" ,"strand"  ,"col" ,"lty" ,"lwd" ,"pch" ,"cex", "gene_type")
-  df<-list(dna_seg(df))
-}
+nfiles<-length(temp)
 
-if (length(temp)>1) {
+#parse names
+gbknames<- lapply(as.list(temp),function(x){strsplit(x = x,split = "[.]")[[1]][1]})
+#read regions of interest
+df<-lapply(temp, read.csv, header = F, stringsAsFactors = F)
 
-  annot<-lapply(df,function(x){annot<-annotation(x1=x$start+10,
-                                          x2=x$end-10,
-                                          text=x$name,
-                                          rot=replicate(nrow(x),35));
-  annot$text<-paste(substr(x$name,start = 0,stop = labelS),"...")
-  annot})
-  
-  
-}else{
 
-  annot <- annotation(x1=df[[1]]$start+10,
-                      x2=df[[1]]$end-10,
-                      text=df[[1]]$name,
-                      rot=replicate(nrow(df[[1]]),35))
-  
-  annot$text<-paste(substr(df[[1]]$name,start = 0,stop = labelS),"...")
-}
+df<-lapply(df,function(x){
+  colnames(x)<-c("name", "start",  "end" ,"strand"  ,"col" ,"lty" ,"lwd" ,"pch" ,"cex", "gene_type","locus_tag")
+  x$locus_tag<-sapply(x$locus_tag,function(y){strsplit(x = y,split = "_")[[1]][2]})
+  x
+})
 
+annot<-lapply(df,function(x){
+  annotation(x1=x$start+10,x2=x$end-10,text=gsub("_"," ",x$name),rot=replicate(nrow(x),30))
+  #annotation(x1=x$start+10,x2=x$end-10,text=x$locus_tag,rot=replicate(nrow(x),30))
+})
+
+#set unique colors for genes
 uniqnames<-unique(do.call(rbind.data.frame, df)["name"])
 uniqnames<-sort(uniqnames[,1])
 color = grDevices::colors()[grep('gr(a|e)y', grDevices::colors(), invert = T)]
@@ -76,35 +61,57 @@ df2color<-data.frame(as.matrix(uniqnames),as.matrix(colors))
 df2color<-t(df2color)
 colnames(df2color)<-df2color[1,]
 df2color<- df2color[-1,]
-df<-lapply(df,function(x){x["col"]<-df2color[x$name];x})
+df<-lapply(df,function(x){
+  x["fill"]<-df2color[x$name]
+  x["col"]<-"black"
+  tmp<-x["name"]
+  x["name"]<-x["locus_tag"]
+  x["locus_tag"]<-tmp
+  x
+})
 
-uniqnames<-gsub(pattern = "_",x = as.matrix(uniqnames),replacement = " ")
-uniqnames<-gsub(pattern = "[.]",x = as.matrix(uniqnames),replacement = ",")
+
+df<-lapply(df,function(x){dna_seg(x)})
+
+if(nfiles>1){
+	names(df)<-gbknames
+}
 
 
+wformula=as.integer(log(sum(sapply(annot,nrow)))*log(sum(sapply(annot,nrow)))*2)+1
+hformula=as.integer(log(nfiles)*nfiles)+3
+pdf(file=outfilename, width = wformula, height = hformula)
 
-pdf(file=outfilename, width = totalgenes*1.5, height = totalgenes*0.2*(totalgenomes*0.8)+1)
-
-par(mar=c(2,2,2,0))
+par(mar=c(0,3,2,3))
 plot(c(0,1000), c(0,1000), type="n", axes=FALSE, xlab="", ylab="")
 
-legend("center", legend = c(as.matrix(uniqnames)),ncol = 1,xpd = NA, cex = 0.8,
-       bty="n",fill=c(as.matrix(colors)),border = c("white"),title = "Genes")
+legend("center", legend = c(as.matrix(uniqnames)),ncol = as.integer(length(uniqnames)/20)+1,xpd = NA, 
+       cex = 0.8, bty="n",fill=c(as.matrix(colors)),border = c("white"),title = "Genes")
 
-plot_gene_map(dna_segs = df,dna_seg_label_cex = 0.8,
-              annotations = annot, annotation_height = 12)
+if(globalA){
+	#read mauve comparison
+	mauvebb<-read_mauve_backbone("tmpbb.mauve")
+	plot_gene_map(dna_segs = mauvebb$dna_segs,dna_seg_label_cex = 0.8,
+              comparisons = mauvebb$comparisons,
+              dna_seg_scale = T)
+}else{
+	plot_gene_map(dna_segs = df,dna_seg_label_cex = 0.8,
+              annotations = annot,
+              dna_seg_scale = T)
+}
+
 
 dev.off()
+
 """)
 
 	plotstep.close()
 	RBIN=which("Rscript")
-	if RBIN == None:
-		print "No Rscript binary found, install it before continue"
+	subprocess.call([RBIN, "plotstep.R", str(outfilename), str(globalA)])
+	if not cleanProcess:
 		sys.exit()
-	else:	
-		subprocess.call([RBIN, "plotstep.R", str(outfilename), str(totalgenes), str(totalgenomes), str(labelSize)])
-	
+
+
 	filenames = glob.glob('*.DNASEGcsv')
 	for filename in filenames:
 		os.remove(filename)
@@ -114,7 +121,7 @@ dev.off()
 	return None
 
 def foundGenomicContext(gene,faafile,upstream,downstream,GCX): #function to search genomic context
-	#the faa files are with genes in order and formatted >gene|contig|position
+	#the faa files are with genes in order and formatted >gene|locustag|contig|position
 	gene_list = [] #to save up and downstream genes
 	faa_sequences = SeqIO.parse(open(faafile),'fasta')
 	for proteins in faa_sequences:
@@ -159,7 +166,7 @@ def foundGenomicContext(gene,faafile,upstream,downstream,GCX): #function to sear
 
 			if gene_position == ourgene_position:
 				color="red"
-				GCX.write("%s,%s,%s,%s,%s,%s,%s\n" % (faafile,str(genid+" (query)"),contig,name,pos1,pos2,strand))
+				GCX.write("%s,%s,%s,%s,%s,%s,%s\n" % (faafile,str(genid+" (input)"),contig,name,pos1,pos2,strand))
 
 			else:
 				color="gray"
@@ -168,9 +175,9 @@ def foundGenomicContext(gene,faafile,upstream,downstream,GCX): #function to sear
 
 			#print name,pos1,pos2,strand,color
 			if gene_position == ourgene_position:
-				dna_segs.write("%s,%s,%s,%s,%s,1,1,8,1,arrows\n" % (str(name+" (query)"), pos1, pos2, strand, color))
+				dna_segs.write("%s,%s,%s,%s,%s,1,1,8,1,arrows,%s\n" % (str(name+" (input)"), pos1, pos2, strand, color, genid))
 			else:
-				dna_segs.write("%s,%s,%s,%s,%s,1,1,8,1,arrows\n" % (name, pos1, pos2, strand, color))
+				dna_segs.write("%s,%s,%s,%s,%s,1,1,8,1,arrows,%s\n" % (name, pos1, pos2, strand, color, genid))
 
 		gene_position=gene_position+1
 		downstream=downstream-1
@@ -181,7 +188,7 @@ def foundGenomicContext(gene,faafile,upstream,downstream,GCX): #function to sear
 
 
 def which(program):#function to check if some program exists 
-    import os
+  
     def is_exe(fpath):
         return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 
@@ -215,12 +222,32 @@ def Makefaa(gbk):
 		for feat in feats:
 			if "product" in feat.qualifiers:
 				cdsname=str(feat.qualifiers["locus_tag"]).replace("'","").replace("[","").replace("]","")
-				product=str(feat.qualifiers["product"]).replace("'","").replace("[","").replace("]","").replace(" ","_").replace(",",".")
-				locat1=str(feat.location).replace("[","").replace("]","").replace("(",":").replace(")","").split(":")[0]
-				locat2=str(feat.location).replace("[","").replace("]","").replace("(",":").replace(")","").split(":")[1]
-				locat3=str(feat.location).replace("[","").replace("]","").replace("(",":").replace(")","").split(":")[2]
+				if "gene" in feat.qualifiers:
+					product=str(feat.qualifiers["gene"]).replace("'","").replace("[","").replace("]","")
 
-				if "translation" in feat.qualifiers:	
+				else:
+					product=str(feat.qualifiers["product"]).replace("'","").replace("[","").replace("]","").replace(" ","_").replace(",",".")
+
+				locationStart = list()
+				locationEnd = list()
+				locationStrand = list()
+				i=0
+				if "join" in str(feat.location):
+					for gensection in str(feat.location).replace("[","").replace("]","").replace("{","").replace("}","").replace("join","").replace(" ","").replace(">","").replace("<","").split(","):
+						locationStart.append(gensection.split(":")[0])
+						locationEnd.append(gensection.split(":")[1].split("(")[0])
+						locationStrand.append(gensection.split(":")[1].split("(")[1].replace(")",""))
+
+						i=i+1
+
+				else:
+					featlocation=str(feat.location).replace(">","").replace("<","").replace("[","").replace("]","").replace("(",":").replace(")","")
+					locationStart.append(featlocation.split(":")[0])
+					locationEnd.append(featlocation.split(":")[1])
+					locationStrand.append(featlocation.split(":")[2])
+					i=i+1
+
+				if "translation" in feat.qualifiers:
 					translation=str(feat.qualifiers["translation"]).replace("'","").replace("[","").replace("]","")
 					band=0
 					for seq in protdict.items():
@@ -228,26 +255,32 @@ def Makefaa(gbk):
 							band=1
 
 					if band==0:
-						faa.write(">%s|%s|%s|%s\n" % (cdsname, product, contigname, str(locat1)+":"+str(locat2)+":"+locat3))
-						faa.write("%s\n" % (translation))
+						for i in range(0,i):
+							#print str(cdsname+" || "+product+" || "+contigname+" || "+locationStart[i]+" || "+locationEnd[i]+" || "+locationStrand[i])
+							faa.write(">%s|%s|%s|%s\n" % (cdsname, product, contigname, str(int(locationStart[i])+1)+":"+locationEnd[i]+":"+locationStrand[i]))
+							faa.write("%s\n" % (translation))
 	
-	faa.close
+	faa.close()
 	return str(gbkname + ".faa")
 
 def main():
 
 	parser = OptionParser(usage = "Usage: python multiGenomicContext.py -f protein.fasta -l MYgbklist.txt")
-	parser.add_option("-f","--proteinFasta",dest="fastaProtein",help="default:none. your protein in fasta format to search on the gbk")
-	parser.add_option("-l","--gbklist",dest="gbkList",help="List of the gbk (remember also have the files), also you can give the complete path in the list")
+	parser.add_option("-g","--global", dest="globalA",help="default:False plot gbk-gbk aligment instead only a region. use only with -l parameter", default=False, action='store_true')
+	parser.add_option("-f","--proteinFasta",dest="fastaProtein",help="default:none. your protein in fasta format to search on the gbk/gbff")
+	parser.add_option("-l","--gbklist",dest="gbkList",help="Comma separated gbk, for example: mygbk1.gbk,mygbk2.gbk,mygbk3.gbk")
 	parser.add_option("-u","--upstreamGenes",dest="Upstream",help="default:5 number of genes to search upstream on the gbks",default=4)
 	parser.add_option("-d","--downstreamGenes",dest="Downstream",help="default:5 number of genes to search downstream on the gbks",default=4)
 	parser.add_option("-e","--evalue",dest="evalue",help="default:1e-5 e-value for blastp search",default=1e-5)
 	parser.add_option("-i","--identity",dest="Identity",help="default:85 range 1-100 % of identity on the blastp alignment to consider the gene exists on the genome",default=85)
 	parser.add_option("-a","--alignmentLength",dest="alignL",help="default:75 range 1-100 % of aligment length to consider the gene exists on the genome",default=75)
-	parser.add_option("-s","--labelSize", dest="labelS",help="default:15 number of character of labels genes", default=15)
+	parser.add_option("-b","--blastpBIN", dest="blastpBIN",help="default:/usr/bin/blastp blastp binary path", default="/usr/bin/blastp")
+	parser.add_option("-m","--progressiveMauveBIN", dest="progressiveMauveBIN",help="default:/usr/bin/progressiveMauve mauve binary path", default="/usr/bin/progressiveMauve")
+	parse.add_option("-c","--cleanProcess", dest="cleanProcess",help="default: True plot this kind of files is complex, so if you turn this flag False, you will have the R file to manipulate the plots", default=True, action='store_false')
 
 	(options,args) = parser.parse_args()
 
+	globalA = options.globalA
 	Inputprotein = options.fastaProtein
 	gbkList= options.gbkList
 	Upstream = int(options.Upstream)
@@ -255,80 +288,117 @@ def main():
 	Evalue=str(options.evalue)
 	Identity=int(options.Identity)
 	alignL=int(options.alignL)
-	labelS=int(options.labelS)
-
-
+	blastpBIN=options.blastpBIN
+	mauveBIN=options.progressiveMauveBIN
+	cleanProcess=options.cleanProcess
 	#check variables
 	if not Inputprotein:
-		print "No input provided, use -h for help"
-		sys.exit()
+		if globalA is not True:
+			print "No input provided (-f), use -h for help"
+			sys.exit()
+	else:
+		if not os.path.isfile(Inputprotein):
+			print str("* "+Inputprotein+"doesn't exist, check the file directory")
+		if globalA:
+			print "-g/--global is only vaild with -l/--gbklist option"
+			sys.exit()
 
-	if not gbkList:
-		print "No gbk list provided, use -h for help"
+	if gbkList is None:
+		print "No gbk list provided (-l), use -h for help"
 		sys.exit()
+	else:
+		gbkList=str(gbkList).split(",")
 
 	#searching for blastp
-	blastpBIN=which("blastp")
-	if blastpBIN == None:
-		print "No blastp found, install it before continue"
+	if which(blastpBIN) is None:
+		print "No blastp found, install it before continue or use --blastpBIN for custom binary path"
+		sys.exit()
+
+	#searching for mauve
+	if which(mauveBIN) is None:
+		print "No mauveAligner found, install it before continue or use progressiveMauveBIN for custom progressiveMauve binary path"
+		sys.exit()
+
+	if Upstream+Downstream >= 433 and globalA is not True:
+		#max number of colors for R script
+		print "too much genes for plot, use the option --global for entire sequences"
+		sys.exit()
+
+	RBIN=which("Rscript")
+	if RBIN == None:
+		print "No Rscript binary found, install it before continue"
 		sys.exit()
 
 	fasta_sequences = SeqIO.parse(open(Inputprotein),'fasta')
-	gbks = open(gbkList,'r')
 
 #################################################################################
 	#get proteins from gbks
 	print "Making .faa from gbk files"
+	for i in range(0,len(gbkList)):
+		if os.path.isfile(gbkList[i]):
+			gbkList[i]=os.path.abspath(gbkList[i])
+		else:
+			print str("* "+gbkList[i]+"doesn't exist")
+			sys.exit()
+
 	faafiles = [] #create list to save .faa
-	for gbk in gbks:
-		gbk=gbk.rstrip()#delete \n character
+	for gbk in gbkList:
+		gbk=gbk.rstrip() #delete \n character
 		name=Makefaa(gbk) #makefaa return the name of .faa (and create the file)
 		faafiles.append(name)
 
-	gbks.close()
 #################################################################################
 
-	#walk through the fastas
-	for fasta in fasta_sequences:
-		name, sequence = str(fasta.id), str(fasta.seq)
-		print "Find",name,"in faa files"
-		#making an individual fasta with the protein
-		tmp=open('tmp.faa','w')
-		tmp.write(">%s\n%s\n" % (name,sequence))
-		tmp.close()
+	#genome-genome aligment
+	if globalA:
+		command=str(mauveBIN+" --output=tmp.mauve --backbone-output=tmpbb.mauve --seed-family --muscle-args='-refine' "+str(" ".join(gbkList)))
+		subprocess.call(command, shell=True)
+		printPlotStep(str(name+".pdf"), globalA,cleanProcess)
 
-		GCX=open(str(name+".csv"),'w')
-		GCX.write("source,genId,contig,name,start,end,strand\n")
-		for faa in faafiles:
-			subprocess.call([blastpBIN, "-query", "tmp.faa", "-subject", str(faa), "-out", "tmp.out", "-evalue", Evalue, "-outfmt", "10", "-max_target_seqs", "1", "-max_hsps", "1"])
-			#now we check if the results pass the filter to consider the gene "exists" in the genome
-			if os.path.getsize("tmp.out")>0:
-				tmp=open("tmp.out","r")
-				uniquerow=next(csv.reader(tmp))
-				tmp.close()
-				os.remove("tmp.out")
-				#uniquerow[1] is the name of protein that match with our query (header of the fasta to be specific)
-				#uniquerow[2] is identity
-				#uniquerow[3] is alignment coverage (length)
-				if uniquerow[2]>=Identity and (float(uniquerow[3])/len(sequence))>=(alignL/100.0):
-					#if we are here, so, the protein exist in the gbk, the next step is find the genes up and down stream of the gbk
-					#call the function
-					foundGenomicContext(uniquerow[1],faa,Upstream,Downstream,GCX)
+	else:
+		#walking through the fastas and genes
+		for fasta in fasta_sequences:
+			name, sequence = str(fasta.id), str(fasta.seq)
+			print "Find",name,"in faa files"
+			#making an individual fasta with the protein
+			tmp=open('tmp.faa','w')
+			tmp.write(">%s\n%s\n" % (name,sequence))
+			tmp.close()
 
-			else:
-				print "No match found on gbk",str(">"+name),"for",faa
-				if os.path.isfile("tmp.out"):
+			GCX=open(str(name+".csv"),'w')
+			GCX.write("source,genId,contig,name,start,end,strand\n")
+			for faa in faafiles:
+				subprocess.call([blastpBIN, "-query", "tmp.faa", "-subject", str(faa), "-out", "tmp.out", "-evalue", Evalue, "-outfmt", "10", "-max_target_seqs", "1", "-max_hsps", "1"])
+				#now we check if the results pass the filter to consider the gene "exists" in the genome
+				if os.path.getsize("tmp.out")>0:
+					tmp=open("tmp.out","r")
+					uniquerow=next(csv.reader(tmp))
+					tmp.close()
 					os.remove("tmp.out")
+					#uniquerow[1] is the name of protein that match with our query (header of the fasta to be specific)
+					#uniquerow[2] is identity
+					#uniquerow[3] is alignment coverage (length)
+					if uniquerow[2]>=Identity and (float(uniquerow[3])/len(sequence))>=(alignL/100.0):
+						#if we are here, so, the protein exist in the gbk, the next step is find the genes up and down stream of the gbk
+						#call the function
+						foundGenomicContext(uniquerow[1],faa,Upstream,Downstream,GCX)
 
-		os.remove("tmp.faa")
-		GCX.close()
-		#call plot step
-		#sys.exit()
-		printPlotStep(str(name+".pdf"), Upstream+Downstream+1, len(faafiles), labelS)
+				else:
+					print "No match found on gbk",str(">"+name),"for",faa
+					if os.path.isfile("tmp.out"):
+						os.remove("tmp.out")
+
+			os.remove("tmp.faa")
+			GCX.close()
+			#call plot step
+			printPlotStep(str(name+".pdf"), globalA, cleanProcess)
 
 	print "Clean files"
 	for faa in faafiles:
 		os.remove(faa)
+
+	if os.path.exists("*.mauve"):
+		os.remove("*.mauve")
 
 	print "Done"
 
