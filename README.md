@@ -1,4 +1,4 @@
-# multiGenomicContext
+# multiGenomicContext [work in progress, no more list of gbk]
 ---------------------
 multiGenomicContext is a python + R script that plot the genomic context of a protein on the genome that you want (or many genomes). You only needs two things: a fasta file and a list of your gbk to find the genomic context (and the gbk's too).
 
@@ -6,7 +6,7 @@ multiGenomicContext is a python + R script that plot the genomic context of a pr
 ![Banner](https://github.com/Sanrrone/multiGenomicContext/blob/master/example/sample.png)
 
 
-#Requisites
+# Requisites
 * Python >= 2.7 with the module [Biopython](http://biopython.org/wiki/Download)
 * [blastp binary](ftp://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/)
 * R (tested in 3.3.1), with modules:
