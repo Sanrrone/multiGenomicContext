@@ -276,7 +276,7 @@ def main():
 	parser.add_option("-a","--alignmentLength",dest="alignL",help="default:75 range 1-100 % of aligment length to consider the gene exists on the genome",default=75)
 	parser.add_option("-b","--blastpBIN", dest="blastpBIN",help="default:/usr/bin/blastp blastp binary path", default="/usr/bin/blastp")
 	parser.add_option("-m","--progressiveMauveBIN", dest="progressiveMauveBIN",help="default:/usr/bin/progressiveMauve mauve binary path", default="/usr/bin/progressiveMauve")
-	parse.add_option("-c","--cleanProcess", dest="cleanProcess",help="default: True plot this kind of files is complex, so if you turn this flag False, you will have the R file to manipulate the plots", default=True, action='store_false')
+	parser.add_option("-c","--cleanProcessOff", dest="cleanProcess",help="default: True plot this kind of files is complex, so if you turn this flag False, you will have the R file to manipulate the plots", default=True, action='store_false')
 
 	(options,args) = parser.parse_args()
 
