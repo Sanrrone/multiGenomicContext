@@ -1,5 +1,5 @@
-# multiGenomicContext [work in progress, no more list of gbk]
----------------------
+# multiGenomicContext
+----------------------
 multiGenomicContext is a python + R script that plot the genomic context of a protein on the genome that you want (or many genomes). You only needs two things: a fasta file and a list of your gbk to find the genomic context (and the gbk's too).
 
 # Output
@@ -17,11 +17,11 @@ multiGenomicContext is a python + R script that plot the genomic context of a pr
 
 multiGenomicContext have a minimal use:
 	
-	python multiGenomicContext.py -f protein.fasta -l gbklist.txt
+	python multiGenomicContext.py -f protein.fasta -l mygbk1.gbk,mygbk2.gbk
 	
 and a complete use:
 
-	python multiGenomicContext.py -f protein.fasta -l gbklist.txt -u 4 -d 4 -e 1e-5 -i 85 -a 75 -s 15
+	python multiGenomicContext.py -f protein.fasta -l mygbk1.gbk,mygbk2.gbk -u 4 -d 4 -e 1e-5 -i 85 -a 75 
 	
 where the options are:
 
@@ -32,12 +32,13 @@ where the options are:
 * -e E-value for blastp search (default: 1e-5)
 * -i Identity % of the alignment on blastp results to consider the gene exists on the genome (default: 85)
 * -a Alignment length (%) between gene and the match for blastp search to consider the gene "exists" on the genome (default 75)
-* -s Number of character of labels genes (default 15)
 
-# How can I do a list?
-The simple way is write a txt name by name. Or do in a terminal:
-		
-	ls -1 *.gbk > myGbkList.txt
+There are more options available for a more customizable way.
+
+* -g: Plot gbk-gbk aligment (use -m for exact binary progressiveMauve path), this option will ignore "-f" and only should be used with "-l"
+* -b: blastp binary path
+* -m: progressive mauve align. This option is to plot the entire gbk regions (not genes), is used to see synteny between genomes. (use -g)
+* -c: for clean files off, by default the script will remove all tmp files on the way, if you used "-c" you will conserve all files including the .R for the plot.
 
 # Notes
 * multiGenomicContext search genes on the gbk because the cds are ordered, but this true only for one chromosome assembly, for gbk files where two or more contigs exists, it's show genomic context for the same contig of the gene.
@@ -46,7 +47,6 @@ The simple way is write a txt name by name. Or do in a terminal:
 # External useful tools
 check for these tools to extract some useful information from your data:
 
-* [multiGenomicContext](https://github.com/Sanrrone/multiGenomicContext): Check the genomic context of several genomes or sequence just providing the GBK files.
 
 * [fetchMyLineage](https://github.com/Sanrrone/fetchMyLineage): Return the complete lineage of your organism just providing the genus and species names.
 
