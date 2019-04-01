@@ -12,6 +12,7 @@ multiGenomicContext is a python + R script that plot the genomic context of a pr
 * R (tested in 3.3.1), with modules:
 	* ggplot2: ```install.packages("ggplot2")```
 	* genoPlotR: ```install.packages("genoPlotR", repos="http://R-Forge.R-project.org")```
+* optional: [Mauve](http://darlinglab.org/mauve/download.html) for gbk-gbk whole comparison.
 
 # Usage
 
