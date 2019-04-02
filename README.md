@@ -44,6 +44,7 @@ There are more options available for a more customizable way.
 # Notes
 * multiGenomicContext search genes on the gbk because the cds are ordered, but this true only for one chromosome assembly, for gbk files where two or more contigs exists, it's show genomic context for the same contig of the gene.
 * We strongly recommend use one software to annotate all gbk's to conserve the same names outcome.
+* -g option use prograssiveMauve that only accept "gbk" extension, not "gbff".
 
 # External useful tools
 check for these tools to extract some useful information from your data:
