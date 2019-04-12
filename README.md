@@ -1,4 +1,4 @@
-# multiGenomicContext [work in progress: set parameter to find only input proteins and not the neightboor]
+# multiGenomicContext [work in progress: set parameter to find only input proteins and not the neighboor]
 ----------------------
 multiGenomicContext is a python + R script to plot the genomic context of a protein on the genome that you want (or many genomes). You only needs two things: a fasta file and the gbk to find the genomic context.
 
