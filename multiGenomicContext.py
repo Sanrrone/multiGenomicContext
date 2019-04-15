@@ -16,9 +16,6 @@ import sys, os, re, subprocess, csv, glob
 from operator import itemgetter
 from collections import deque
 from optparse import OptionParser
-#from Bio.Seq import Seq
-#from Bio.SeqRecord import SeqRecord
-#from Bio.SeqFeature import SeqFeature, FeatureLocation
 from Bio import SeqIO
 
 def printPlotStep(outfilename,globalA,cleanProcess):
@@ -120,7 +117,7 @@ dev.off()
 
 	return None
 
-def foundGenomicContext(gene,faafile,upstream,downstream,GCX): #function to search genomic context
+def foundGenomicContext(gene,faafile,upstream,downstream,GCX,dna_segs): #function to search genomic context
 	#the faa files are with genes in order and formatted >gene|locustag|contig|position
 	gene_list = [] #to save up and downstream genes
 	faa_sequences = SeqIO.parse(open(faafile),'fasta')
@@ -145,10 +142,6 @@ def foundGenomicContext(gene,faafile,upstream,downstream,GCX): #function to sear
 		upstream=upstream-gene_position
 	else:
 		gene_position=gene_position-upstream
-
-
-	outname=str(faafile).replace(".faa","")
-	dna_segs=open(str(outname+".DNASEGcsv"),"w")
 
 	while gene_position<len(gene_list) and downstream>=0:
 
@@ -182,7 +175,6 @@ def foundGenomicContext(gene,faafile,upstream,downstream,GCX): #function to sear
 		gene_position=gene_position+1
 		downstream=downstream-1
 
-	dna_segs.close()
 
 	return None
 
@@ -216,6 +208,7 @@ def Makefaa(gbk):
 	faa= open(str(wd+"/"+gbkname+ ".faa"), 'w')
 	recs = [rec for rec in SeqIO.parse(gbk, "genbank")]
 	for rec in recs:
+
 		contigname=rec[0:].id
 		feats = [feat for feat in rec.features if feat.type == "CDS"]
 
@@ -267,7 +260,7 @@ def main():
 
 	parser = OptionParser(usage = "Usage: python multiGenomicContext.py -f protein.fasta -l MYgbklist.txt")
 	parser.add_option("-g","--global", dest="globalA",help="default:False plot gbk-gbk aligment instead only a region. use only with -l parameter", default=False, action='store_true')
-	parser.add_option("-f","--proteinFasta",dest="fastaProtein",help="default:none. your protein in fasta format to search on the gbk/gbff")
+	parser.add_option("-f","--proteinFasta",dest="proteinFasta",help="default:none. your protein in fasta format to search on the gbk/gbff")
 	parser.add_option("-l","--gbklist",dest="gbkList",help="Comma separated gbk, for example: mygbk1.gbk,mygbk2.gbk,mygbk3.gbk")
 	parser.add_option("-u","--upstreamGenes",dest="Upstream",help="default:5 number of genes to search upstream on the gbks",default=4)
 	parser.add_option("-d","--downstreamGenes",dest="Downstream",help="default:5 number of genes to search downstream on the gbks",default=4)
@@ -277,11 +270,12 @@ def main():
 	parser.add_option("-b","--blastpBIN", dest="blastpBIN",help="default:/usr/bin/blastp blastp binary path", default="/usr/bin/blastp")
 	parser.add_option("-m","--progressiveMauveBIN", dest="progressiveMauveBIN",help="default:/usr/bin/progressiveMauve mauve binary path", default="/usr/bin/progressiveMauve")
 	parser.add_option("-c","--cleanProcessOff", dest="cleanProcess",help="default: True plot this kind of files is complex, so if you turn this flag False, you will have the R file to manipulate the plots", default=True, action='store_false')
+	parser.add_option("-w","--wholeGenomicInput", dest="wholeGenomicInput",help="default: False by default the script plot one chart/csv per input sequence, with this parameter all inputs are in the same chart (per gbk)", default=False, action='store_true')
 
 	(options,args) = parser.parse_args()
 
 	globalA = options.globalA
-	Inputprotein = options.fastaProtein
+	Inputprotein = options.proteinFasta
 	gbkList= options.gbkList
 	Upstream = int(options.Upstream)
 	Downstream = int(options.Downstream)
@@ -291,6 +285,9 @@ def main():
 	blastpBIN=options.blastpBIN
 	mauveBIN=options.progressiveMauveBIN
 	cleanProcess=options.cleanProcess
+	wholeGenomicInput=options.wholeGenomicInput
+    
+    
 	#check variables
 	if not Inputprotein:
 		if globalA is not True:
@@ -315,7 +312,7 @@ def main():
 		sys.exit()
 
 	#searching for mauve
-	if which(mauveBIN) is None:
+	if globalA and which(mauveBIN) is None:
 		print "No mauveAligner found, install it before continue or use progressiveMauveBIN for custom progressiveMauve binary path"
 		sys.exit()
 
@@ -329,7 +326,8 @@ def main():
 		print "No Rscript binary found, install it before continue"
 		sys.exit()
 
-	fasta_sequences = SeqIO.parse(open(Inputprotein),'fasta')
+	Inputprotein=os.path.abspath(Inputprotein)
+	inputProteins = SeqIO.parse(open(Inputprotein),'fasta')
 
 #################################################################################
 	#get proteins from gbks
@@ -341,11 +339,11 @@ def main():
 			print str("* "+gbkList[i]+"doesn't exist")
 			sys.exit()
 
-	faafiles = [] #create list to save .faa
+	gbkfaafiles = [] #create list to save .faa
 	for gbk in gbkList:
 		gbk=gbk.rstrip() #delete \n character
 		name=Makefaa(gbk) #makefaa return the name of .faa (and create the file)
-		faafiles.append(name)
+		gbkfaafiles.append(name)
 
 #################################################################################
 
@@ -356,45 +354,94 @@ def main():
 		printPlotStep(str(name+".pdf"), globalA,cleanProcess)
 
 	else:
-		#walking through the fastas and genes
-		for fasta in fasta_sequences:
-			name, sequence = str(fasta.id), str(fasta.seq)
-			print "Find",name,"in faa files"
-			#making an individual fasta with the protein
-			tmp=open('tmp.faa','w')
-			tmp.write(">%s\n%s\n" % (name,sequence))
-			tmp.close()
+		if wholeGenomicInput:
+			#walking through the fastas and genes
+			for faa in gbkfaafiles:
+				GCX=open(str(faa+".csv"),'w')
+				GCX.write("source,genId,contig,name,start,end,strand\n")
 
-			GCX=open(str(name+".csv"),'w')
-			GCX.write("source,genId,contig,name,start,end,strand\n")
-			for faa in faafiles:
-				subprocess.call([blastpBIN, "-query", "tmp.faa", "-subject", str(faa), "-out", "tmp.out", "-evalue", Evalue, "-outfmt", "10", "-max_target_seqs", "1", "-max_hsps", "1"])
-				#now we check if the results pass the filter to consider the gene "exists" in the genome
-				if os.path.getsize("tmp.out")>0:
-					tmp=open("tmp.out","r")
-					uniquerow=next(csv.reader(tmp))
+				outname=str(faa).replace(".faa","")
+				dna_segs=open(str(outname+".DNASEGcsv"),"w")
+				print "working in "+faa
+				for fasta in inputProteins:
+					name, sequence = str(fasta.id), str(fasta.seq)
+					print "Find",name,"in faa files"
+					#making an individual fasta with the protein
+					tmp=open('tmp.faa','w')
+					tmp.write(">%s\n%s\n" % (name,sequence))
 					tmp.close()
-					os.remove("tmp.out")
-					#uniquerow[1] is the name of protein that match with our query (header of the fasta to be specific)
-					#uniquerow[2] is identity
-					#uniquerow[3] is alignment coverage (length)
-					if uniquerow[2]>=Identity and (float(uniquerow[3])/len(sequence))>=(alignL/100.0):
-						#if we are here, so, the protein exist in the gbk, the next step is find the genes up and down stream of the gbk
-						#call the function
-						foundGenomicContext(uniquerow[1],faa,Upstream,Downstream,GCX)
 
-				else:
-					print "No match found on gbk",str(">"+name),"for",faa
-					if os.path.isfile("tmp.out"):
+
+					command=str(blastpBIN+" -query tmp.faa -subject "+str(faa)+" -out tmp.out -evalue "+Evalue+" -outfmt 10 -max_target_seqs 1 -max_hsps 1")
+					subprocess.call(command, shell=True)
+					os.remove("tmp.faa")
+					#now we check if the results pass the filter to consider the gene "exists" in the genome
+					if os.path.getsize("tmp.out")>0:
+						tmp=open("tmp.out","r")
+						uniquerow=next(csv.reader(tmp))
+						tmp.close()
 						os.remove("tmp.out")
+						#uniquerow[1] is the name of protein that match with our query (header of the fasta to be specific)
+						#uniquerow[2] is identity
+						#uniquerow[3] is alignment coverage (length)
+						if uniquerow[2]>=Identity and (float(uniquerow[3])/len(sequence))>=(alignL/100.0):
+							#if we are here, so, the protein exist in the gbk, the next step is find the genes up and down stream of the gbk
+							#call the function
+							foundGenomicContext(uniquerow[1],faa,0,0,GCX,dna_segs)
 
-			os.remove("tmp.faa")
-			GCX.close()
-			#call plot step
-			printPlotStep(str(name+".pdf"), globalA, cleanProcess)
+					else:
+						print "No match found on gbk",str(">"+name),"for",faa
+						if os.path.isfile("tmp.out"):
+							os.remove("tmp.out")
+
+				GCX.close()
+				dna_segs.close()
+				#call plot step
+				printPlotStep(str(faa+".pdf"), globalA, cleanProcess)
+		else:
+			#walking through the fastas and genes
+			for fasta in inputProteins:
+				name, sequence = str(fasta.id), str(fasta.seq)
+				print "Find",name,"in faa files"
+				#making an individual fasta with the protein
+				tmp=open('tmp.faa','w')
+				tmp.write(">%s\n%s\n" % (name,sequence))
+				tmp.close()
+
+				GCX=open(str(name+".csv"),'w')
+				GCX.write("source,genId,contig,name,start,end,strand\n")
+				for faa in gbkfaafiles:
+					command=str(blastpBIN+" -query tmp.faa -subject "+str(faa)+" -out tmp.out -evalue "+Evalue+" -outfmt 10 -max_target_seqs 1 -max_hsps 1 -num_threads 4")
+					subprocess.call(command, shell=True)
+					#now we check if the results pass the filter to consider the gene "exists" in the genome
+					if os.path.getsize("tmp.out")>0:
+						tmp=open("tmp.out","r")
+						uniquerow=next(csv.reader(tmp))
+						tmp.close()
+						os.remove("tmp.out")
+						#uniquerow[1] is the name of protein that match with our query (header of the fasta to be specific)
+						#uniquerow[2] is identity
+						#uniquerow[3] is alignment coverage (length)
+						if uniquerow[2]>=Identity and (float(uniquerow[3])/len(sequence))>=(alignL/100.0):
+							#if we are here, so, the protein exist in the gbk, the next step is find the genes up and down stream of the gbk
+							#call the function
+							outname=str(faa).replace(".faa","")
+							dna_segs=open(str(outname+".DNASEGcsv"),"w")
+							foundGenomicContext(uniquerow[1],faa,Upstream,Downstream,GCX,dna_segs)
+							dna_segs.close()
+
+					else:
+						print "No match found on gbk",str(">"+name),"for",faa
+						if os.path.isfile("tmp.out"):
+							os.remove("tmp.out")
+
+				os.remove("tmp.faa")
+				GCX.close()
+				#call plot step
+				printPlotStep(str(name+".pdf"), globalA, cleanProcess)
 
 	print "Clean files"
-	for faa in faafiles:
+	for faa in gbkfaafiles:
 		os.remove(faa)
 
 	if os.path.exists("*.mauve"):
