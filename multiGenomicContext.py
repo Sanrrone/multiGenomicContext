@@ -45,7 +45,7 @@ df<-lapply(df,function(x){
 })
 
 annot<-lapply(df,function(x){
-  annotation(x1=x$start+10,x2=x$end*0.7,text=gsub("_"," ",x$name),rot=replicate(nrow(x),30))
+  annotation(x1=x$start+10,x2=x$end-5,text=gsub("_"," ",x$name),rot=replicate(nrow(x),35))
   #annotation(x1=x$start+10,x2=x$end-10,text=x$locus_tag,rot=replicate(nrow(x),30))
 })
 
@@ -75,14 +75,14 @@ if(nfiles>1){
 }
 
 
-wformula=as.integer(log(sum(sapply(annot,nrow)))*log(sum(sapply(annot,nrow)))*2)+1
+wformula=as.integer(log(sum(sapply(annot,nrow)))*log(sum(sapply(annot,nrow)))*2)+3
 hformula=as.integer(log(nfiles)*nfiles)+3
 pdf(file=outfilename, width = wformula, height = hformula)
 
 par(mar=c(0,3,2,3))
 plot(c(0,1000), c(0,1000), type="n", axes=FALSE, xlab="", ylab="")
 
-legend("center", legend = c(as.matrix(uniqnames)),ncol = as.integer(length(uniqnames)/20)+1,xpd = NA, 
+legend("center", legend = gsub("_"," ",c(as.matrix(uniqnames))),ncol = as.integer(length(uniqnames)/20)+1,xpd = NA, 
        cex = 0.8, bty="n",fill=c(as.matrix(colors)),border = c("white"),title = "Genes")
 
 if(globalA){
