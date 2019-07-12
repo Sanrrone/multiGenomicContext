@@ -45,7 +45,7 @@ df<-lapply(df,function(x){
 })
 
 annot<-lapply(df,function(x){
-  annotation(x1=x$start+10,x2=x$end-10,text=gsub("_"," ",x$name),rot=replicate(nrow(x),30))
+  annotation(x1=x$start+10,x2=x$end*0.7,text=gsub("_"," ",x$name),rot=replicate(nrow(x),30))
   #annotation(x1=x$start+10,x2=x$end-10,text=x$locus_tag,rot=replicate(nrow(x),30))
 })
 
