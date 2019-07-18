@@ -266,7 +266,7 @@ def main():
 	parser.add_option("-d","--downstreamGenes",dest="Downstream",help="default:5 number of genes to search downstream on the gbks",default=4)
 	parser.add_option("-e","--evalue",dest="evalue",help="default:1e-5 e-value for blastp search",default=1e-5)
 	parser.add_option("-i","--identity",dest="Identity",help="default:85 range 1-100 % of identity on the blastp alignment to consider the gene exists on the genome",default=85)
-	parser.add_option("-a","--alignmentLength",dest="alignL",help="default:75 range 1-100 % of aligment length to consider the gene exists on the genome",default=75)
+	parser.add_option("-a","--alignmentLength",dest="alignL",help="default:75 range 1-100 % of aligment length to consider the gene exists on the genome",default=85)
 	parser.add_option("-b","--blastpBIN", dest="blastpBIN",help="default:/usr/bin/blastp blastp binary path", default="/usr/bin/blastp")
 	parser.add_option("-m","--progressiveMauveBIN", dest="progressiveMauveBIN",help="default:/usr/bin/progressiveMauve mauve binary path", default="/usr/bin/progressiveMauve")
 	parser.add_option("-c","--cleanProcessOff", dest="cleanProcess",help="default: True plot this kind of files is complex, so if you turn this flag False, you will have the R file to manipulate the plots", default=True, action='store_false')
@@ -411,7 +411,7 @@ def main():
 				GCX=open(str(name+".csv"),'w')
 				GCX.write("source,genId,contig,name,start,end,strand\n")
 				for faa in gbkfaafiles:
-					command=str(blastpBIN+" -query tmp.faa -subject "+str(faa)+" -out tmp.out -evalue "+Evalue+" -outfmt 10 -max_target_seqs 1 -max_hsps 1 -num_threads 4")
+					command=str(blastpBIN+" -query tmp.faa -subject "+str(faa)+" -out tmp.out -evalue "+Evalue+" -outfmt 10 -max_target_seqs 1 -max_hsps 1")
 					subprocess.call(command, shell=True)
 					#now we check if the results pass the filter to consider the gene "exists" in the genome
 					if os.path.getsize("tmp.out")>0:
