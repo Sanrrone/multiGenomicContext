@@ -33,20 +33,45 @@ temp = list.files(pattern="*.DNASEGcsv")
 nfiles<-length(temp)
 
 #parse names
-gbknames<- lapply(as.list(temp),function(x){strsplit(x = x,split = "[.]")[[1]][1]})
+gbknames<- lapply(as.list(temp),function(x){strsplit(x = x,split = "[.]DNASEGcsv")[[1]][1]})
+gbknames<- lapply(gbknames,function(x){gsub(pattern = "[.]gbff",replacement = "",x = x)})
+
 #read regions of interest
 df<-lapply(temp, read.csv, header = F, stringsAsFactors = F)
 
 
 df<-lapply(df,function(x){
   colnames(x)<-c("name", "start",  "end" ,"strand"  ,"col" ,"lty" ,"lwd" ,"pch" ,"cex", "gene_type","locus_tag")
-  x$locus_tag<-sapply(x$locus_tag,function(y){strsplit(x = y,split = "_")[[1]][2]})
+  name<-strsplit(x = x$name,split = "_|-")
+  x$name<-unlist(lapply(name,function(y){
+    halfy<-round(length(y)/2,0)
+    if(halfy+1>=3){
+      y<-paste0(paste(y[1:halfy],collapse = " "),"\n",
+                paste(y[(length(y)-(halfy-1)):length(y)],collapse = " ")
+      )
+    }else{
+      y<-paste(y,collapse = " ")
+    }
+    y
+  }))
   x
 })
 
 annot<-lapply(df,function(x){
-  annotation(x1=x$start+10,x2=x$end-5,text=gsub("_"," ",x$name),rot=replicate(nrow(x),35))
-  #annotation(x1=x$start+10,x2=x$end-10,text=x$locus_tag,rot=replicate(nrow(x),30))
+
+  annotation(x1=x$start+10,x2=x$end-5,text=x$name,rot=replicate(nrow(x),35))
+  #annotation(x1=x$start,x2=x$end,text=x$locus_tag,rot=replicate(nrow(x),35))
+})
+
+xlims<-lapply(df,function(x){
+  x<-x[order(x$start),]
+  lims<-c(ifelse(min(x[,"start"])-50<=0,0,min(x[,"start"])-50))
+  for(i in 1:(nrow(x)-1)){
+    if(x[i+1,"start"]-x[i,"end"] >= 3000){
+      lims<-c(lims,x[i,"end"]+100,x[i+1,"start"]+100)
+    }
+  }
+  lims<-c(lims,max(x[,"end"])+50)
 })
 
 #set unique colors for genes
@@ -61,9 +86,10 @@ df2color<- df2color[-1,]
 df<-lapply(df,function(x){
   x["fill"]<-df2color[x$name]
   x["col"]<-"black"
-  tmp<-x["name"]
-  x["name"]<-x["locus_tag"]
-  x["locus_tag"]<-tmp
+  #x["gene_type"]<-"side_blocks"
+  #tmp<-x["name"]
+  #x["name"]<-x["locus_tag"]
+  #x["locus_tag"]<-tmp
   x
 })
 
@@ -71,12 +97,12 @@ df<-lapply(df,function(x){
 df<-lapply(df,function(x){dna_seg(x)})
 
 if(nfiles>1){
-	names(df)<-gbknames
+  names(df)<-gbknames
 }
 
 
-wformula=as.integer(log(sum(sapply(annot,nrow)))*log(sum(sapply(annot,nrow)))*2)+3
-hformula=as.integer(log(nfiles)*nfiles)+3
+wformula=as.integer(log(max(sapply(annot,nrow)))*log(max(sapply(annot,nrow)))*2)+3
+hformula=as.integer(log(nfiles)*nfiles)+1
 pdf(file=outfilename, width = wformula, height = hformula)
 
 par(mar=c(0,3,2,3))
@@ -86,15 +112,15 @@ legend("center", legend = gsub("_"," ",c(as.matrix(uniqnames))),ncol = as.intege
        cex = 0.8, bty="n",fill=c(as.matrix(colors)),border = c("white"),title = "Genes")
 
 if(globalA){
-	#read mauve comparison
-	mauvebb<-read_mauve_backbone("tmpbb.mauve")
-	plot_gene_map(dna_segs = mauvebb$dna_segs,dna_seg_label_cex = 0.8,
-              comparisons = mauvebb$comparisons,
-              dna_seg_scale = T)
+  #read mauve comparison
+  mauvebb<-read_mauve_backbone("tmpbb.mauve")
+  plot_gene_map(dna_segs = mauvebb$dna_segs,dna_seg_label_cex = 0.8,
+                comparisons = mauvebb$comparisons,
+                dna_seg_scale = T)
 }else{
-	plot_gene_map(dna_segs = df,dna_seg_label_cex = 0.8,
-              annotations = annot,
-              dna_seg_scale = T)
+    plot_gene_map(dna_segs = df,dna_seg_label_cex = 0.5,annotation_height = round(2+log(hformula),0),
+                annotations = annot, xlims = xlims, n_scale_ticks=5,
+                scale = F, dna_seg_scale = T,plot_new=T)
 }
 
 
@@ -106,7 +132,7 @@ dev.off()
 	RBIN=which("Rscript")
 	subprocess.call([RBIN, "plotstep.R", str(outfilename), str(globalA)])
 	if not cleanProcess:
-		sys.exit()
+		return None
 
 
 	filenames = glob.glob('*.DNASEGcsv')
@@ -258,10 +284,10 @@ def Makefaa(gbk):
 
 def main():
 
-	parser = OptionParser(usage = "Usage: python multiGenomicContext.py -f protein.fasta -l MYgbklist.txt")
-	parser.add_option("-g","--global", dest="globalA",help="default:False plot gbk-gbk aligment instead only a region. use only with -l parameter", default=False, action='store_true')
+	parser = OptionParser(usage = "Usage: python multiGenomicContext.py -f protein.fasta -g mygbff.gbff [-w if your protein fasta have 2>= proteins]")
+	#parser.add_option("-g","--global", dest="globalA",help="default:False plot gbk-gbk aligment instead only a region. use only with -l parameter", default=False, action='store_true')
 	parser.add_option("-f","--proteinFasta",dest="proteinFasta",help="default:none. your protein in fasta format to search on the gbk/gbff")
-	parser.add_option("-l","--gbklist",dest="gbkList",help="Comma separated gbk, for example: mygbk1.gbk,mygbk2.gbk,mygbk3.gbk")
+	parser.add_option("-g","--gbklist",dest="gbkList",help="Comma separated gbk, for example: mygbk1.gbk,mygbk2.gbk,mygbk3.gbk")
 	parser.add_option("-u","--upstreamGenes",dest="Upstream",help="default:5 number of genes to search upstream on the gbks",default=4)
 	parser.add_option("-d","--downstreamGenes",dest="Downstream",help="default:5 number of genes to search downstream on the gbks",default=4)
 	parser.add_option("-e","--evalue",dest="evalue",help="default:1e-5 e-value for blastp search",default=1e-5)
@@ -270,11 +296,11 @@ def main():
 	parser.add_option("-b","--blastpBIN", dest="blastpBIN",help="default:/usr/bin/blastp blastp binary path", default="/usr/bin/blastp")
 	parser.add_option("-m","--progressiveMauveBIN", dest="progressiveMauveBIN",help="default:/usr/bin/progressiveMauve mauve binary path", default="/usr/bin/progressiveMauve")
 	parser.add_option("-c","--cleanProcessOff", dest="cleanProcess",help="default: True plot this kind of files is complex, so if you turn this flag False, you will have the R file to manipulate the plots", default=True, action='store_false')
-	parser.add_option("-w","--wholeGenomicInput", dest="wholeGenomicInput",help="default: False by default the script plot one chart/csv per input sequence, with this parameter all inputs are in the same chart (per gbk)", default=False, action='store_true')
+	parser.add_option("-w","--wholeGenomicInput", dest="wholeGenomicInput",help="default: False by default the script plot one chart/csv per input sequence, with this parameter all proteins input are in the same chart (per gbk)", default=False, action='store_true')
 
 	(options,args) = parser.parse_args()
 
-	globalA = options.globalA
+	#globalA = options.globalA
 	Inputprotein = options.proteinFasta
 	gbkList= options.gbkList
 	Upstream = int(options.Upstream)
@@ -287,7 +313,7 @@ def main():
 	cleanProcess=options.cleanProcess
 	wholeGenomicInput=options.wholeGenomicInput
     
-    
+	globalA=False
 	#check variables
 	if not Inputprotein:
 		if globalA is not True:
@@ -362,10 +388,9 @@ def main():
 
 				outname=str(faa).replace(".faa","")
 				dna_segs=open(str(outname+".DNASEGcsv"),"w")
-				print "working in "+faa
-				for fasta in inputProteins:
+				print "working on "+faa
+				for fasta in SeqIO.parse(open(Inputprotein),'fasta'):
 					name, sequence = str(fasta.id), str(fasta.seq)
-					print "Find",name,"in faa files"
 					#making an individual fasta with the protein
 					tmp=open('tmp.faa','w')
 					tmp.write(">%s\n%s\n" % (name,sequence))
@@ -387,17 +412,18 @@ def main():
 						if uniquerow[2]>=Identity and (float(uniquerow[3])/len(sequence))>=(alignL/100.0):
 							#if we are here, so, the protein exist in the gbk, the next step is find the genes up and down stream of the gbk
 							#call the function
+							#print(uniquerow)
 							foundGenomicContext(uniquerow[1],faa,0,0,GCX,dna_segs)
 
 					else:
-						print "No match found on gbk",str(">"+name),"for",faa
+						print "No match found in gbk",str(">"+name),"for",faa
 						if os.path.isfile("tmp.out"):
 							os.remove("tmp.out")
 
 				GCX.close()
 				dna_segs.close()
 				#call plot step
-				printPlotStep(str(faa+".pdf"), globalA, cleanProcess)
+			printPlotStep(str("Gcontext"+".pdf"), globalA, cleanProcess)
 		else:
 			#walking through the fastas and genes
 			for fasta in inputProteins:
