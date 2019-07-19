@@ -41,6 +41,7 @@ df<-lapply(temp, read.csv, header = F, stringsAsFactors = F)
 
 
 df<-lapply(df,function(x){
+  x<-unique(x)
   colnames(x)<-c("name", "start",  "end" ,"strand"  ,"col" ,"lty" ,"lwd" ,"pch" ,"cex", "gene_type","locus_tag")
   name<-strsplit(x = x$name,split = "_|-")
   x$name<-unlist(lapply(name,function(y){
@@ -65,10 +66,11 @@ annot<-lapply(df,function(x){
 
 xlims<-lapply(df,function(x){
   x<-x[order(x$start),]
-  lims<-c(ifelse(min(x[,"start"])-50<=0,0,min(x[,"start"])-50))
+  lims<-c(ifelse(min(x[1,"start"])-100<=0,0,min(x[,"start"])-100))
   for(i in 1:(nrow(x)-1)){
     if(x[i+1,"start"]-x[i,"end"] >= 3000){
-      lims<-c(lims,x[i,"end"]+100,x[i+1,"start"]+100)
+      lims<-c(lims,x[i,"end"]+100,
+              x[i+1,"start"]-100)
     }
   }
   lims<-c(lims,max(x[,"end"])+50)
@@ -119,12 +121,13 @@ if(globalA){
                 dna_seg_scale = T)
 }else{
     plot_gene_map(dna_segs = df,dna_seg_label_cex = 0.5,annotation_height = round(2+log(hformula),0),
-                annotations = annot, xlims = xlims, n_scale_ticks=5,
+                annotations = annot, xlims = xlims,
                 scale = F, dna_seg_scale = T,plot_new=T)
 }
 
 
 dev.off()
+
 
 """)
 
@@ -390,30 +393,31 @@ def main():
 				dna_segs=open(str(outname+".DNASEGcsv"),"w")
 				print "working on "+faa
 				for fasta in SeqIO.parse(open(Inputprotein),'fasta'):
-					name, sequence = str(fasta.id), str(fasta.seq)
+					name, qsequence = str(fasta.id), str(fasta.seq)
 					#making an individual fasta with the protein
 					tmp=open('tmp.faa','w')
-					tmp.write(">%s\n%s\n" % (name,sequence))
+					tmp.write(">%s\n%s\n" % (name,qsequence))
 					tmp.close()
 
 
-					command=str(blastpBIN+" -query tmp.faa -subject "+str(faa)+" -out tmp.out -evalue "+Evalue+" -outfmt 10 -max_target_seqs 1 -max_hsps 1")
+					command=str(blastpBIN+" -query tmp.faa -subject "+str(faa)+" -out tmp.out -evalue "+Evalue+" -outfmt 10")
 					subprocess.call(command, shell=True)
 					os.remove("tmp.faa")
 					#now we check if the results pass the filter to consider the gene "exists" in the genome
 					if os.path.getsize("tmp.out")>0:
 						tmp=open("tmp.out","r")
-						uniquerow=next(csv.reader(tmp))
+						for uniquerow in csv.reader(tmp,delimiter=','):
+							#uniquerow[0] is our query protein
+							#uniquerow[1] is the name of protein that match with our query (header of the fasta to be specific)
+							#uniquerow[2] is identity
+							#uniquerow[3] is alignment coverage (length)
+							if uniquerow[2]>=Identity and (float(uniquerow[3])/len(qsequence))>=(alignL/100.0):
+								#if we are here, so, the protein exist in the gbk, the next step is find the genes up and down stream of the gbk
+								#call the function
+								#print(uniquerow)
+								foundGenomicContext(uniquerow[1],faa,0,0,GCX,dna_segs)
 						tmp.close()
 						os.remove("tmp.out")
-						#uniquerow[1] is the name of protein that match with our query (header of the fasta to be specific)
-						#uniquerow[2] is identity
-						#uniquerow[3] is alignment coverage (length)
-						if uniquerow[2]>=Identity and (float(uniquerow[3])/len(sequence))>=(alignL/100.0):
-							#if we are here, so, the protein exist in the gbk, the next step is find the genes up and down stream of the gbk
-							#call the function
-							#print(uniquerow)
-							foundGenomicContext(uniquerow[1],faa,0,0,GCX,dna_segs)
 
 					else:
 						print "No match found in gbk",str(">"+name),"for",faa
