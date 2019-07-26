@@ -25,6 +25,7 @@ def printPlotStep(outfilename,globalA,cleanProcess):
 rm(list=ls())
 library(ggplot2)
 library(genoPlotR)
+library(dplyr)
 args<-commandArgs()
 outfilename<-args[6]
 globalA<-ifelse(toupper(args[7])=="TRUE",TRUE,FALSE)
@@ -45,6 +46,7 @@ df<-lapply(df,function(x){
   colnames(x)<-c("name", "start",  "end" ,"strand"  ,"col" ,"lty" ,"lwd" ,"pch" ,"cex", "gene_type","locus_tag","contig")
   name<-strsplit(x = x$name,split = "_|-")
   x$name<-unlist(lapply(name,function(y){
+  	y<-unique(y) #to avoid duplicated words in the name
     halfy<-round(length(y)/2,0)
     if(halfy+1>=3){
       y<-paste0(paste(y[1:halfy],collapse = " "),"\n",
@@ -60,39 +62,46 @@ df<-lapply(df,function(x){
 
 df<-lapply(df,function(x){
   x<-x[order(x$contig),]
-  prevContig<-x[1,"contig"]
-  newx<-list()
+  x<-lapply(unique(x$contig), function(c){ tmp<-subset(x,contig==c)
+                                            tmp[order(tmp$start),]
+  }) %>% bind_rows()
   
-  for(c in unique(x$contig)){
+  prevContig<-x[1,"contig"]
+  newx<-list(subset(x, contig == prevContig))
+  endpos<-max(subset(x, contig == prevContig)[,"end"]) + 30000
+  
+  for(c in unique(x$contig)[-1]){
     tmp<-subset(x, contig == c)
-    tmp<-tmp[order(tmp$start),]
-    if(tmp[1,"contig"] == prevContig){
-      endpos<-tmp[nrow(tmp),"end"] + 3001
-    }else{
-      if(nrow(tmp)>=2){
-        prevEnd<-0
-        nextStart<-0
-        for(i in 1:(nrow(tmp)-1)){
-          distGene<- nextStart - prevEnd
-          posdif<-tmp[i,"end"] - tmp[i,"start"]
-          tmp[i,"start"] <- endpos + distGene
-          tmp[i,"end"] <- tmp[i,"start"] + posdif
-          endpos<-tmp[i,"end"]
-          prevEnd<-tmp[i,"end"]
-          nextStart<-tmp[i+1,"start"]
-        }
-      }else{
-        posdif<-tmp[1,"end"] - tmp[1,"start"]
-        tmp[1,"start"] <- endpos
-        tmp[1,"end"] <- tmp[1,"start"] + posdif
-        endpos<-tmp[1,"end"]
+    
+    if(nrow(tmp)>=2){
+      prevEnd<-0
+      nextStart<-0
+      for(i in 1:(nrow(tmp)-1)){
+        distGene<- abs(nextStart - prevEnd)
+        posdif<-tmp[i,"end"] - tmp[i,"start"]
+        tmp[i,"start"] <- endpos + distGene
+        tmp[i,"end"] <- tmp[i,"start"] + posdif
+        endpos<-tmp[i,"end"]
+        prevEnd<-tmp[i,"end"]
+        nextStart<-tmp[i+1,"start"]
       }
+      i<-i+1
+      distGene<- abs(nextStart - prevEnd)
+      posdif<-tmp[i,"end"] - tmp[i,"start"]
+      tmp[i,"start"] <- endpos + distGene
+      tmp[i,"end"] <- tmp[i,"start"] + posdif
       
-      prevContig<- c
+    }else{
+      posdif<-tmp[1,"end"] - tmp[1,"start"]
+      tmp[1,"start"] <- endpos
+      tmp[1,"end"] <- tmp[1,"start"] + posdif
     }
+    
+    endpos<-tmp[nrow(tmp),"end"] + 30000
     newx[[c]]<-tmp
   }
   x<-bind_rows(newx)
+  x
 })
 
 annot<-lapply(df,function(x){
