@@ -42,7 +42,7 @@ df<-lapply(temp, read.csv, header = F, stringsAsFactors = F)
 
 df<-lapply(df,function(x){
   x<-unique(x)
-  colnames(x)<-c("name", "start",  "end" ,"strand"  ,"col" ,"lty" ,"lwd" ,"pch" ,"cex", "gene_type","locus_tag")
+  colnames(x)<-c("name", "start",  "end" ,"strand"  ,"col" ,"lty" ,"lwd" ,"pch" ,"cex", "gene_type","locus_tag","contig")
   name<-strsplit(x = x$name,split = "_|-")
   x$name<-unlist(lapply(name,function(y){
     halfy<-round(length(y)/2,0)
@@ -197,9 +197,9 @@ def foundGenomicContext(gene,faafile,upstream,downstream,GCX,dna_segs): #functio
 
 			#print name,pos1,pos2,strand,color
 			if gene_position == ourgene_position:
-				dna_segs.write("%s,%s,%s,%s,%s,1,1,8,1,arrows,%s\n" % (str(name+" (input)"), pos1, pos2, strand, color, genid))
+				dna_segs.write("%s,%s,%s,%s,%s,1,1,8,1,arrows,%s,%s\n" % (str(name+" (input)"), pos1, pos2, strand, color, genid, contig))
 			else:
-				dna_segs.write("%s,%s,%s,%s,%s,1,1,8,1,arrows,%s\n" % (name, pos1, pos2, strand, color, genid))
+				dna_segs.write("%s,%s,%s,%s,%s,1,1,8,1,arrows,%s,%s\n" % (name, pos1, pos2, strand, color, genid, contig))
 
 		gene_position=gene_position+1
 		downstream=downstream-1
