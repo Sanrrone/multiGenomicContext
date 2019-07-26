@@ -58,6 +58,43 @@ df<-lapply(df,function(x){
   x
 })
 
+df<-lapply(df,function(x){
+  x<-x[order(x$contig),]
+  prevContig<-x[1,"contig"]
+  newx<-list()
+  
+  for(c in unique(x$contig)){
+    tmp<-subset(x, contig == c)
+    tmp<-tmp[order(tmp$start),]
+    if(tmp[1,"contig"] == prevContig){
+      endpos<-tmp[nrow(tmp),"end"] + 3001
+    }else{
+      if(nrow(tmp)>=2){
+        prevEnd<-0
+        nextStart<-0
+        for(i in 1:(nrow(tmp)-1)){
+          distGene<- nextStart - prevEnd
+          posdif<-tmp[i,"end"] - tmp[i,"start"]
+          tmp[i,"start"] <- endpos + distGene
+          tmp[i,"end"] <- tmp[i,"start"] + posdif
+          endpos<-tmp[i,"end"]
+          prevEnd<-tmp[i,"end"]
+          nextStart<-tmp[i+1,"start"]
+        }
+      }else{
+        posdif<-tmp[1,"end"] - tmp[1,"start"]
+        tmp[1,"start"] <- endpos
+        tmp[1,"end"] <- tmp[1,"start"] + posdif
+        endpos<-tmp[1,"end"]
+      }
+      
+      prevContig<- c
+    }
+    newx[[c]]<-tmp
+  }
+  x<-bind_rows(newx)
+})
+
 annot<-lapply(df,function(x){
 
   annotation(x1=x$start+10,x2=x$end-5,text=x$name,rot=replicate(nrow(x),35))
@@ -103,7 +140,7 @@ if(nfiles>1){
 }
 
 
-wformula=as.integer(log(max(sapply(annot,nrow)))*log(max(sapply(annot,nrow)))*2)+3
+wformula=as.integer(log(max(sapply(annot,nrow)))*log(max(sapply(annot,nrow)))*2)+max(sapply(xlims, length))
 hformula=as.integer(log(nfiles)*nfiles)+1
 pdf(file=outfilename, width = wformula, height = hformula)
 
@@ -188,7 +225,8 @@ def foundGenomicContext(gene,faafile,upstream,downstream,GCX,dna_segs): #functio
 
 			if gene_position == ourgene_position:
 				color="red"
-				GCX.write("%s,%s,%s,%s,%s,%s,%s\n" % (faafile,str(genid+" (input)"),contig,name,pos1,pos2,strand))
+				#GCX.write("%s,%s,%s,%s,%s,%s,%s\n" % (faafile,str(genid+" (input)"),contig,name,pos1,pos2,strand))
+				GCX.write("%s,%s,%s,%s,%s,%s,%s\n" % (faafile,genid,contig,name,pos1,pos2,strand))
 
 			else:
 				color="gray"
@@ -197,7 +235,9 @@ def foundGenomicContext(gene,faafile,upstream,downstream,GCX,dna_segs): #functio
 
 			#print name,pos1,pos2,strand,color
 			if gene_position == ourgene_position:
-				dna_segs.write("%s,%s,%s,%s,%s,1,1,8,1,arrows,%s,%s\n" % (str(name+" (input)"), pos1, pos2, strand, color, genid, contig))
+				#dna_segs.write("%s,%s,%s,%s,%s,1,1,8,1,arrows,%s,%s\n" % (str(name+" (input)"), pos1, pos2, strand, color, genid, contig))
+				dna_segs.write("%s,%s,%s,%s,%s,1,1,8,1,arrows,%s,%s\n" % (name, pos1, pos2, strand, color, genid, contig))
+
 			else:
 				dna_segs.write("%s,%s,%s,%s,%s,1,1,8,1,arrows,%s,%s\n" % (name, pos1, pos2, strand, color, genid, contig))
 
